@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout *)",
+      "Bash(npx playwright *)",
+      "Bash(node -e \"require\\('playwright'\\); console.log\\('playwright module found'\\)\")",
+      "Bash(mkdir -p /tmp/pw_driver)",
+      "Bash(npm init *)",
+      "Bash(node \"C:\\\\Users\\\\HP\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--xampp-htdocs-3core-projects-ecommerce\\\\c3d2f0f8-7bb5-4081-964a-9b2fd84a06f7\\\\scratchpad\\\\pw_check.js\")",
+      "Bash(cp \"C:\\\\Users\\\\HP\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--xampp-htdocs-3core-projects-ecommerce\\\\c3d2f0f8-7bb5-4081-964a-9b2fd84a06f7\\\\scratchpad\\\\pw_check.js\" /tmp/pw_driver/pw_check.js)",
+      "Bash(node pw_check.js)",
+      "Bash(rm -f package-lock.json)",
+      "Bash(rm -rf node_modules/.vite)",
+      "Bash(grep -iE \"^\\(vue$|vue-router|vuex|element|pinia|vue-i18n|vue-tables|mdbvue|vue-loading|vue-carousel|vue-mj|highcharts|driver\\\\.js|vue-pagination\\)\")",
+      "Bash(grep -n 'button-font-weight\\\\|border-color-lighter\\\\|border-color-light\\\\b\\\\|$table-border\\\\b' node_modules/element-plus/theme-chalk/src/common/var.scss node_modules/element-plus/theme-chalk/src/table.scss)",
+      "Bash(grep -n '$border-color\\\\b' node_modules/element-plus/theme-chalk/src/common/var.scss)",
+      "Bash(grep -n '^$button:' -A 15 node_modules/element-plus/theme-chalk/src/common/var.scss)",
+      "Bash(npx vite *)",
+      "Bash(node pw_check_vue3.js)",
+      "Bash(cp \"C:/Users/HP/AppData/Local/Temp/claude/c--xampp-htdocs-3core-projects-ecommerce/c3d2f0f8-7bb5-4081-964a-9b2fd84a06f7/scratchpad/pw_debug_checkout.js\" /tmp/pw_driver/)",
+      "Bash(node pw_debug_checkout.js)",
+      "Bash(cp \"C:/Users/HP/AppData/Local/Temp/claude/c--xampp-htdocs-3core-projects-ecommerce/c3d2f0f8-7bb5-4081-964a-9b2fd84a06f7/scratchpad/pw_debug_checkout2.js\" /tmp/pw_driver/)",
+      "Bash(node pw_debug_checkout2.js)"
+    ]
+  }
+}

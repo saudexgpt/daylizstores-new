@@ -1,0 +1,74 @@
+{
+  "name": "daylizstores",
+  "version": "0.11.0",
+  "description": "A small scale e-commerce website",
+  "author": "Samuel Udoh <saudexgpt@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "watch": "vite build --watch",
+    "build": "vite build",
+    "prod": "vite build",
+    "production": "vite build",
+    "lint": "eslint --ext .js,.vue resources/js",
+    "test:js": "node --experimental-default-type=module --test \"tests/js/**/*.test.mjs\""
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "resources/**/*.{js,vue}": [
+      "eslint --fix",
+      "git add"
+    ]
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.7",
+    "autoprefixer": "^10.5.2",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^6.8.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-vue": "^9.27.0",
+    "fast-glob": "^3.3.3",
+    "husky": "^3.0.5",
+    "laravel-vite-plugin": "^2.1.0",
+    "lint-staged": "^9.2.5",
+    "sass": "^1.101.0",
+    "vite": "^7.3.6",
+    "vite-plugin-svg-icons": "^2.0.1"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@fontsource/cormorant-garamond": "^5.2.11",
+    "@fontsource/inter": "^5.2.8",
+    "@fortawesome/fontawesome-free": "^6.5.2",
+    "axios": "^0.21.1",
+    "camelcase": "^5.3.1",
+    "clipboard": "^2.0.6",
+    "core-js": "^3.8.1",
+    "dropzone": "^5.7.0",
+    "echarts": "^4.6.0",
+    "element-plus": "^2.7.6",
+    "file-saver": "^2.0.2",
+    "fuse.js": "^3.6.1",
+    "idb-keyval": "^6.2.0",
+    "js-cookie": "^2.2.1",
+    "jsonlint": "^1.6.3",
+    "jszip": "^3.2.2",
+    "laravel-echo": "^1.8.0",
+    "moment": "^2.30.1",
+    "normalize.css": "^8.0.1",
+    "nprogress": "^0.2.0",
+    "path-to-regexp": "^3.1.0",
+    "pinia": "^2.1.7",
+    "pusher-js": "^6.0.3",
+    "screenfull": "^4.2.1",
+    "vue": "^3.4.31",
+    "vue-i18n": "^9.13.1",
+    "vue-router": "^4.4.0",
+    "xlsx": "^0.15.5"
+  }
+}

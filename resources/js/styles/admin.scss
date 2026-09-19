@@ -1,0 +1,598 @@
+// =============================================================================
+// Admin design system
+//
+// Everything here is scoped to `body.admin-mode`, a class the admin Layout adds
+// on mount and removes on unmount — so none of it can leak into the storefront
+// or the login page, while popovers/dialogs/dropdowns (which Element Plus
+// teleports to <body>, outside the layout) still pick it up.
+//
+// NOTE: the app's root font-size is 10px (legacy AdminLTE), so sizes here are px.
+// =============================================================================
+
+// Design tokens are plain custom properties, so they live on :root — components
+// shared with the storefront (e.g. the order details on the Track Order page) can
+// use them too. Only the Element Plus overrides below are scoped to the admin.
+:root {
+  // ---- brand + neutrals -------------------------------------------------------
+  --admin-primary: #192ea7;
+  --admin-primary-hover: #131f6e;
+  --admin-primary-soft: #eef0ff;
+  --admin-accent: #be1712;
+  --admin-bg: #f4f6fb;
+  --admin-surface: #ffffff;
+  --admin-surface-soft: #f8f9fd;
+  --admin-border: #e6e9f2;
+  --admin-border-strong: #d5daea;
+  --admin-text: #1c2340;
+  --admin-muted: #6b7394;
+
+  // ---- status ---------------------------------------------------------------------
+  --admin-success: #0e8a4a;
+  --admin-success-soft: #e5f6ec;
+  --admin-warning: #b26a00;
+  --admin-warning-soft: #fff3d6;
+  --admin-danger: #cf2a1f;
+  --admin-danger-soft: #fdecea;
+  --admin-info: #1d5fd8;
+  --admin-info-soft: #e7f0fe;
+
+  // ---- shape --------------------------------------------------------------------
+  --admin-radius: 14px;
+  --admin-radius-sm: 8px;
+  --admin-shadow: 0 1px 2px rgba(20, 28, 74, 0.04), 0 6px 20px rgba(20, 28, 74, 0.05);
+  --admin-shadow-lg: 0 12px 40px rgba(20, 28, 74, 0.16);
+
+  // ---- shell ----------------------------------------------------------------------
+  --admin-sidebar-width: 256px;
+  --admin-sidebar-collapsed: 78px;
+  --admin-sidebar-bg: #0f1747;
+  --admin-sidebar-bg-2: #141f5c;
+  --admin-sidebar-text: #a9b2dc;
+  --admin-header-height: 64px;
+}
+
+body.admin-mode {
+  // ---- Element Plus theme ---------------------------------------------------------
+  --el-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --el-color-primary: #192ea7;
+  --el-color-primary-light-3: #5e6dc1;
+  --el-color-primary-light-5: #8c97d3;
+  --el-color-primary-light-7: #bac0e5;
+  --el-color-primary-light-8: #d1d5ed;
+  --el-color-primary-light-9: #e8eaf6;
+  --el-color-primary-dark-2: #142586;
+  --el-color-success: #0e8a4a;
+  --el-color-warning: #d98a00;
+  --el-color-danger: #cf2a1f;
+  --el-color-info: #6b7394;
+  --el-text-color-primary: #1c2340;
+  --el-text-color-regular: #3a4266;
+  --el-text-color-secondary: #6b7394;
+  --el-border-color: #d5daea;
+  --el-border-color-light: #e6e9f2;
+  --el-border-color-lighter: #eceff7;
+  --el-fill-color-light: #f4f6fb;
+  --el-fill-color-blank: #ffffff;
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+  --el-component-size: 38px;
+  --el-component-size-small: 32px;
+  --el-component-size-large: 44px;
+
+  background: var(--admin-bg);
+  font-family: var(--el-font-family);
+  color: var(--admin-text);
+  -webkit-font-smoothing: antialiased;
+
+  // legacy `label { font-weight: 700 }` in index.scss
+  label {
+    font-weight: 600;
+  }
+}
+
+// =============================================================================
+// Shell
+// =============================================================================
+.admin-shell {
+  min-height: 100vh;
+  font-family: var(--el-font-family);
+  font-size: 14px;
+  color: var(--admin-text);
+
+  .admin-sidebar {
+    position: fixed;
+    z-index: 1001;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: var(--admin-sidebar-width);
+    background: linear-gradient(180deg, var(--admin-sidebar-bg) 0%, var(--admin-sidebar-bg-2) 100%);
+    transition: width 0.25s ease, transform 0.25s ease;
+    overflow: hidden;
+  }
+
+  .admin-main {
+    min-height: 100vh;
+    margin-left: var(--admin-sidebar-width);
+    transition: margin-left 0.25s ease;
+    min-width: 0;
+  }
+
+  &.hideSidebar {
+    .admin-sidebar { width: var(--admin-sidebar-collapsed); }
+    .admin-main { margin-left: var(--admin-sidebar-collapsed); }
+  }
+
+  &.withoutAnimation {
+    .admin-sidebar,
+    .admin-main { transition: none; }
+  }
+
+  // ---- header ---------------------------------------------------------------------
+  .admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  .admin-content {
+    padding: 26px 32px 56px;
+    max-width: 1680px;
+    margin: 0 auto;
+  }
+
+  // Legacy pages still wrap themselves in .app-container (40px !important); the
+  // shell now provides the page padding, so neutralise it.
+  .app-container,
+  .dashboard-container,
+  .dashboard-editor-container {
+    padding: 0 !important;
+    background: transparent !important;
+    min-height: 0 !important;
+  }
+
+  .drawer-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(12, 18, 54, 0.5);
+  }
+
+  // ---- mobile -----------------------------------------------------------------------
+  &.mobile {
+    .admin-main { margin-left: 0; }
+    .admin-sidebar {
+      width: var(--admin-sidebar-width);
+      box-shadow: var(--admin-shadow-lg);
+    }
+    &.hideSidebar .admin-sidebar {
+      transform: translateX(-100%);
+    }
+    .admin-content { padding: 18px 14px 40px; }
+  }
+}
+
+// =============================================================================
+// Element Plus — refinements (applies inside and outside the shell)
+// =============================================================================
+body.admin-mode {
+  // ---- buttons ------------------------------------------------------------------
+  .el-button {
+    font-weight: 600;
+    border-radius: var(--admin-radius-sm);
+    letter-spacing: 0.005em;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+
+    // Solid primary buttons only. Applied to plain/link/text variants this variable
+    // override beat Element Plus's own (lighter) ones and turned a `plain` button into
+    // a solid navy disc with an invisible icon.
+    &--primary:not(.is-plain):not(.is-link):not(.is-text) {
+      --el-button-bg-color: var(--admin-primary);
+      --el-button-border-color: var(--admin-primary);
+      --el-button-hover-bg-color: var(--admin-primary-hover);
+      --el-button-hover-border-color: var(--admin-primary-hover);
+      --el-button-active-bg-color: var(--admin-primary-hover);
+      --el-button-active-border-color: var(--admin-primary-hover);
+    }
+
+    // the drop shadow belongs to solid buttons only (not link / plain / text variants)
+    &--primary:not(.is-link):not(.is-plain):not(.is-text):not(.is-disabled) {
+      box-shadow: 0 2px 6px rgba(25, 46, 167, 0.22);
+    }
+
+    // Element Plus wraps a button's slot in an inner <span>. Space an icon from its
+    // label with `gap` on that span — it also covers a bare text node, which Element
+    // Plus's own `.el-icon + span` rule never did (plain text sat flush against the icon).
+    &:not(.is-circle) > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      .el-icon--right,
+      .el-icon--left {
+        margin: 0;
+      }
+    }
+
+    &.is-circle {
+      border-radius: 50%;
+    }
+
+    &.is-link {
+      font-weight: 600;
+    }
+  }
+
+  // ---- inputs / selects -------------------------------------------------------------
+  .el-input__wrapper,
+  .el-textarea__inner,
+  .el-select__wrapper {
+    border-radius: var(--admin-radius-sm);
+    box-shadow: 0 0 0 1px var(--admin-border-strong) inset;
+    transition: box-shadow 0.15s ease;
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+    }
+
+    &.is-focus,
+    &:focus {
+      box-shadow: 0 0 0 1px var(--admin-primary) inset, 0 0 0 4px var(--el-color-primary-light-9);
+    }
+  }
+
+  .el-textarea__inner {
+    padding: 10px 12px;
+  }
+
+  // Legacy global rule (custom-style.scss) zeroes every form-item margin. Admin
+  // forms want real rhythm — `!important` is needed to win against it.
+  .el-form-item {
+    margin-bottom: 20px !important;
+  }
+
+  .el-form--inline .el-form-item {
+    margin-bottom: 0 !important;
+    margin-right: 14px;
+  }
+
+  .el-form-item__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-text);
+  }
+
+  .el-form-item__error {
+    font-size: 12px;
+  }
+
+  // ---- tables -----------------------------------------------------------------------
+  .el-table {
+    --el-table-header-bg-color: var(--admin-surface-soft);
+    --el-table-header-text-color: var(--admin-muted);
+    --el-table-row-hover-bg-color: #f5f6ff;
+    --el-table-border-color: var(--admin-border);
+    --el-table-text-color: var(--admin-text);
+    font-size: 14px;
+
+    th.el-table__cell {
+      height: 46px;
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: var(--admin-surface-soft);
+
+      .cell { white-space: nowrap; }
+    }
+
+    td.el-table__cell {
+      padding: 14px 0;
+    }
+
+    .el-table__empty-block {
+      min-height: 160px;
+    }
+  }
+
+  // legacy Bootstrap/AdminLTE tables inside admin cards
+  .admin-card .table {
+    margin-bottom: 0;
+  }
+
+  // ---- tags -----------------------------------------------------------------------
+  .el-tag {
+    border-radius: 999px;
+    border: 0;
+    font-weight: 600;
+    padding: 0 10px;
+
+    &--success { --el-tag-bg-color: var(--admin-success-soft); --el-tag-text-color: var(--admin-success); }
+    &--warning { --el-tag-bg-color: var(--admin-warning-soft); --el-tag-text-color: var(--admin-warning); }
+    &--danger { --el-tag-bg-color: var(--admin-danger-soft); --el-tag-text-color: var(--admin-danger); }
+    &--info { --el-tag-bg-color: #eef0f6; --el-tag-text-color: var(--admin-muted); }
+    &--primary { --el-tag-bg-color: var(--admin-primary-soft); --el-tag-text-color: var(--admin-primary); }
+  }
+
+  // ---- cards (any el-card still in use) ----------------------------------------------
+  .el-card {
+    border-radius: var(--admin-radius);
+    border: 1px solid var(--admin-border);
+    box-shadow: var(--admin-shadow);
+
+    .el-card__header {
+      padding: 16px 20px;
+      font-weight: 650;
+      border-bottom: 1px solid var(--admin-border);
+    }
+  }
+
+  // ---- dialogs / drawers ------------------------------------------------------------------
+  .el-dialog {
+    border-radius: 16px;
+    padding: 0;
+    box-shadow: var(--admin-shadow-lg);
+    overflow: hidden;
+
+    .el-dialog__header {
+      margin: 0;
+      padding: 20px 26px;
+      border-bottom: 1px solid var(--admin-border);
+    }
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .el-dialog__body {
+      padding: 24px 26px;
+    }
+
+    .el-dialog__footer {
+      padding: 16px 26px;
+      border-top: 1px solid var(--admin-border);
+      background: var(--admin-surface-soft);
+    }
+  }
+
+  .el-overlay-dialog {
+    overflow-y: auto;
+  }
+
+  .el-message-box {
+    border-radius: 16px;
+    padding-bottom: 6px;
+  }
+
+  // ---- tabs -------------------------------------------------------------------------
+  .el-tabs__item {
+    height: 44px !important;
+    line-height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-muted);
+
+    &.is-active { color: var(--admin-primary); }
+  }
+
+  .el-tabs__active-bar {
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+  }
+
+  .el-tabs__nav-wrap::after {
+    height: 1px;
+    background: var(--admin-border);
+  }
+
+  // ---- pagination ---------------------------------------------------------------------
+  .el-pagination {
+    --el-pagination-button-bg-color: transparent;
+    --el-pagination-hover-color: var(--admin-primary);
+    font-weight: 500;
+
+    .el-pager li {
+      border-radius: var(--admin-radius-sm);
+      font-weight: 600;
+
+      &.is-active {
+        background: var(--admin-primary);
+        color: #fff;
+      }
+    }
+
+    .btn-prev,
+    .btn-next {
+      border-radius: var(--admin-radius-sm);
+    }
+  }
+
+  // ---- popups -------------------------------------------------------------------------
+  .el-popper.is-light {
+    border-color: var(--admin-border);
+    border-radius: 12px;
+    box-shadow: var(--admin-shadow-lg);
+  }
+
+  .el-dropdown-menu {
+    padding: 6px;
+  }
+
+  .el-dropdown-menu__item {
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-weight: 500;
+    gap: 8px;
+
+    &:not(.is-disabled):hover,
+    &:not(.is-disabled):focus {
+      background: var(--admin-primary-soft);
+      color: var(--admin-primary);
+    }
+  }
+
+  .el-select-dropdown__item {
+    border-radius: 6px;
+    margin: 0 6px;
+  }
+
+  .el-loading-mask {
+    border-radius: inherit;
+  }
+
+  .el-alert {
+    border-radius: 10px;
+  }
+
+  .el-message,
+  .el-notification {
+    border-radius: 12px;
+  }
+}
+
+// =============================================================================
+// Shared utility classes used by admin pages
+// =============================================================================
+.admin-shell {
+  // filter / search bars above tables
+  .admin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+
+    .grow { flex: 1 1 260px; min-width: 200px; }
+  }
+
+  // icon-only buttons at the end of a table row
+  .row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  // a two-line identity cell (name + secondary line)
+  .cell-title {
+    font-weight: 600;
+    color: var(--admin-text);
+  }
+
+  .cell-sub {
+    font-size: 12px;
+    color: var(--admin-muted);
+  }
+
+  .money {
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    font-size: 13px;
+  }
+
+  .text-muted { color: var(--admin-muted); }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  // KPI cards: 2 across on phones, 3 on tablets/laptops, 6 on wide screens
+  .grid-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 20px;
+
+    @media (min-width: 760px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (min-width: 1700px) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    @media (max-width: 420px) { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .pager {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 22px;
+    border-top: 1px solid var(--admin-border);
+  }
+}
+
+// The collapsed sidebar's submenu flyouts and the notification popover are teleported to <body>.
+body.admin-mode {
+  .sidebar-popper.el-popper {
+    border: 0;
+    border-radius: 12px;
+    background: var(--admin-sidebar-bg-2);
+    box-shadow: var(--admin-shadow-lg);
+
+    .el-menu {
+      --el-menu-bg-color: transparent;
+      --el-menu-text-color: var(--admin-sidebar-text);
+      --el-menu-hover-bg-color: rgba(255, 255, 255, 0.08);
+      --el-menu-active-color: #ffffff;
+      padding: 6px;
+      border: 0;
+    }
+
+    .el-menu-item {
+      border-radius: 8px;
+      font-weight: 500;
+      color: var(--admin-sidebar-text);
+
+      &:hover,
+      &.is-active {
+        color: #fff;
+      }
+
+      &.is-active {
+        background: rgba(255, 255, 255, 0.14);
+      }
+    }
+  }
+
+  .notification-popper.el-popper {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+// Number inputs read like every other input (Element centres their text by default)
+body.admin-mode .el-input-number .el-input__inner {
+  text-align: left;
+}
+
+// Printing an order / invoice: only the page content, on plain white
+@media print {
+  body.admin-mode {
+    background: #fff;
+
+    .admin-sidebar,
+    .admin-header,
+    .drawer-bg,
+    .no-print {
+      display: none !important;
+    }
+
+    .admin-shell .admin-main { margin-left: 0 !important; }
+    .admin-shell .admin-content { padding: 0; max-width: none; }
+    .admin-card { box-shadow: none !important; break-inside: avoid; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell * {
+    transition: none !important;
+  }
+}

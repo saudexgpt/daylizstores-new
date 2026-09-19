@@ -1,0 +1,37 @@
+/**
+* Element Plus's theming system replaced Element UI's flat $--color-primary
+* style SCSS variables with Dart Sass module maps overridden via
+* `@forward ... with (...)` — see https://element-plus.org/en-US/guide/theming.html
+*
+* Primary is the real DayLiz Stores navy (see styles/_tokens.scss's
+* $color-navy) — applied globally, so this also colors the admin
+* dashboard's buttons/focus-rings/tables, matching the earlier decision to
+* theme Element Plus app-wide rather than storefront-only.
+**/
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': (
+      'base': #192ea7,
+    ),
+    'success': (
+      'base': #13ce66,
+    ),
+    'warning': (
+      'base': #ffba00,
+    ),
+    'danger': (
+      'base': #ff4949,
+    ),
+    'error': (
+      'base': #ff4949,
+    ),
+  ),
+  $border-color: (
+    'light': #dfe4ed,
+    'lighter': #e6ebf5,
+  ),
+  $button: (
+    'font-weight': 400,
+  ),
+);
+@use 'element-plus/theme-chalk/src/index.scss' as *;

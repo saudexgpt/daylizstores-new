@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" backupGlobals="false" bootstrap="vendor/autoload.php" colors="true" processIsolation="false" stopOnFailure="false" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd" cacheDirectory=".phpunit.cache" backupStaticProperties="false" beStrictAboutChangesToGlobalState="false">
+  <testsuites>
+    <testsuite name="Unit">
+      <directory suffix="Test.php">./tests/Unit</directory>
+    </testsuite>
+    <testsuite name="Feature">
+      <directory suffix="Test.php">./tests/Feature</directory>
+    </testsuite>
+  </testsuites>
+  <extensions>
+    <bootstrap class="Tests\Bootstrap"/>
+  </extensions>
+  <php>
+    <server name="APP_ENV" value="testing"/>
+    <server name="BCRYPT_ROUNDS" value="4"/>
+    <server name="CACHE_DRIVER" value="array"/>
+    <server name="MAIL_DRIVER" value="array"/>
+    <server name="QUEUE_CONNECTION" value="sync"/>
+    <server name="SESSION_DRIVER" value="array"/>
+    <server name="APP_CONFIG_CACHE" value="bootstrap/cache/config.phpunit.php"/>
+    <server name="APP_SERVICES_CACHE" value="bootstrap/cache/services.phpunit.php"/>
+    <server name="APP_PACKAGES_CACHE" value="bootstrap/cache/packages.phpunit.php"/>
+    <server name="APP_ROUTES_CACHE" value="bootstrap/cache/routes.phpunit.php"/>
+    <server name="APP_EVENTS_CACHE" value="bootstrap/cache/events.phpunit.php"/>
+    <!--
+            DB_DATABASE is hard-pinned here (not just .env.testing) so it's
+            impossible for tests to accidentally run against the real
+            `ecommerce` database: <server> vars are set before Dotenv loads,
+            and Dotenv (immutable) never overrides an already-set variable.
+            DB_HOST/PORT/USERNAME/PASSWORD are deliberately left out of this
+            file so CI can point them at its own MySQL service via real CI
+            variables (which Dotenv also won't override) — only .env.testing
+            supplies those for local runs.
+        -->
+    <server name="DB_CONNECTION" value="mysql"/>
+    <server name="DB_DATABASE" value="ecommerce_testing"/>
+  </php>
+  <source>
+    <include>
+      <directory suffix=".php">./app</directory>
+    </include>
+  </source>
+</phpunit>

@@ -1,0 +1,40 @@
+image: php:8.2-cli
+
+services:
+  - mysql:8.0
+
+variables:
+  MYSQL_DATABASE: ecommerce_testing
+  MYSQL_ROOT_PASSWORD: secret
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: ecommerce_testing
+  DB_USERNAME: root
+  DB_PASSWORD: secret
+
+stages:
+  - test
+
+unit_test:
+  stage: test
+  before_script:
+    - apt-get update -y
+    - apt-get install -y git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev default-mysql-client
+    - docker-php-ext-configure gd --with-freetype --with-jpeg
+    - docker-php-ext-install pdo_mysql mbstring zip exif pcntl gd
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  script:
+    - cp .env.example .env
+    - composer install --no-interaction --prefer-dist
+    - php artisan key:generate
+    # Wait for the mysql service to accept connections before migrating.
+    - until mysqladmin ping -h"$DB_HOST" -P"$DB_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" --silent; do sleep 2; done
+    - vendor/bin/phpunit
+
+# There is no `deploy` stage here on purpose: the previous config pointed at
+# the original Laravue template author's own domain and SSH infrastructure
+# (laravue.cipherpols.com), which does not belong to this project — running
+# it would have deployed to the wrong place. Add a real deploy stage back
+# once this project's actual staging/production target and credentials are
+# known (see TASK.md Phase 2).
