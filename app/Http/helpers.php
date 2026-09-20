@@ -135,9 +135,14 @@ function subdomainPublicPath($folder = '')
     return public_path((string) $folder);
 }
 
-function portalPulicPath($folder = '')
+function portalPulicPath($folder = null)
 {
-    return public_path((string) $folder);
+    // return public_path($folder);
+    // return storage_path('app/public/' . $folder);
+    if (env('APP_URL') === 'http://localhost:8000') {
+        return public_path((string) $folder);
+    }
+    return "/var/www/daylizstores.com/public_html" . $folder;
 }
 
 function folderSize($dir)
