@@ -13,7 +13,7 @@ use App\Models\Order\Order;
 use App\Models\Order\OrderStatus;
 use App\Models\Order\OrderItem;
 use App\Mail\CustomerCredentials;
-use App\Mail\OrderDetails;
+use App\Services\Orders\OrderEmails;
 use App\Models\ItemDiscount;
 use App\Models\Stock\ItemPrice;
 use App\Models\Stock\ItemSizePrice;
@@ -226,9 +226,28 @@ class OrdersController extends Controller
             ];
         });
         if ($result['status'] === 'success') {
+            // a bank-transfer order is "placed" now: the customer gets their order number and details by email
+            $this->emailOrderDetails($result['order']);
             return response()->json(['order_details' => $result['order'], 'message' => 'success'], 200);
         }
         return $this->orderNotPlacedResponse($result);
+    }
+
+    /**
+     * Emails the customer their order details AFTER the response has gone out, so checkout is never held up
+     * by (or fails because of) the mail server, and no queue worker is needed. The order is already
+     * committed by the time this runs. Never throws — see OrderEmails.
+     */
+    private function emailOrderDetails($order)
+    {
+        $orderId = (int) $order->id;
+        $done = false;   // terminating callbacks live as long as the app instance, so make each one fire exactly once
+        app()->terminating(function () use ($orderId, &$done) {
+            if (!$done) {
+                $done = true;
+                app(OrderEmails::class)->send($orderId);
+            }
+        });
     }
 
     /**
@@ -472,8 +491,13 @@ class OrdersController extends Controller
         $verifiedSuccess = ($data['status'] ?? null) === 'success';
         $amountMatches = isset($data['amount']) && (int) $data['amount'] === (int) round($order->total * 100);
         if ($verifiedSuccess && $amountMatches) {
+            // atomic: the callback and the webhook can arrive together, and only the one that actually
+            // flips the order to paid may send the "payment received" email
+            $flipped = Order::whereKey($order->id)->where('payment_status', '!=', 'paid')->update(['payment_status' => 'paid']);
             $order->payment_status = 'paid';
-            $order->save();
+            if ($flipped) {
+                $this->emailOrderDetails($order);
+            }
         }
     }
 

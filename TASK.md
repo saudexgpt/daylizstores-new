@@ -186,6 +186,10 @@ Audit of cart -> checkout -> confirmation. Every item below has a regression tes
 - Admin `change-status` doesn't validate the status value or guard against repeated transitions; the `assign-order-to-location` route points at a method that doesn't exist (`assignOrderToWarehouse` does).
 - `.eslintrc.js` has an invalid `vue/max-attributes-per-line` option, so linting can't run.
 
+- [x] **Order confirmation email** (20 Sep): the customer is emailed their order number, items, totals, delivery details and a track-order link. Bank-transfer orders are emailed the moment they are placed ("awaiting payment confirmation"); card (Paystack) orders once payment is confirmed ("payment received") — exactly once even when the callback and webhook both fire. Sent after the response (no checkout delay, no queue worker needed), never throws (a mail failure is logged and the order stands), skipped for a double-submitted order or an invalid email. Old `order_details` template rewritten (it read `name` / `rate`, which order lines do not have). 12 tests in `tests/Feature/Order/OrderEmailTest.php`
+  - Production needs: working `MAIL_*` settings, `MAIL_FROM_ADDRESS` on a domain with SPF / DKIM set up (else it lands in spam), `APP_NAME` and `APP_URL` set correctly in `.env`
+  - Noted, not changed: an order's `total` equals its items only — `delivery_cost` is stored but never added to what the customer pays (no real order has a delivery cost today). The email shows a delivery line only when delivery is part of the total
+
 ## Phase 6 — Accounting (Income & Expenses), Restock List, Reports
 
 Goal: let the owner know, at any time, whether the business is making a profit — with books kept the standard way — plus an easy restock list and a reports page for everything reportable.
