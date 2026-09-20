@@ -80,8 +80,8 @@ class OrderEmailTest extends TestCase
         $response->assertStatus(200)->assertJsonFragment(['message' => 'success']);
         $order = Order::where('order_uniq_id', $payload['order_uniq_id'])->firstOrFail();
 
-        Mail::assertSent(OrderDetails::class, 1);
-        Mail::assertSent(OrderDetails::class, function (OrderDetails $mail) use ($order) {
+        Mail::assertQueued(OrderDetails::class, 1);
+        Mail::assertQueued(OrderDetails::class, function (OrderDetails $mail) use ($order) {
             return $mail->hasTo('guest@example.com') && $mail->order->id === $order->id;
         });
     }
@@ -92,7 +92,7 @@ class OrderEmailTest extends TestCase
         [, $payload] = $this->placeBankOrder();
         $order = Order::where('order_uniq_id', $payload['order_uniq_id'])->firstOrFail();
 
-        Mail::assertSent(OrderDetails::class, function (OrderDetails $mail) use ($order) {
+        Mail::assertQueued(OrderDetails::class, function (OrderDetails $mail) use ($order) {
             $html = $mail->render();
             $this->assertMatchesRegularExpression('/^DS/', $order->order_number);
             foreach ([
@@ -133,7 +133,7 @@ class OrderEmailTest extends TestCase
         Mail::fake();
         [, $payload] = $this->placeBankOrder(['address' => '<script>alert(1)</script>', 'notes' => '<b>bold</b>', 'name' => 'Eve <i>Hacker</i>']);
 
-        Mail::assertSent(OrderDetails::class, function (OrderDetails $mail) {
+        Mail::assertQueued(OrderDetails::class, function (OrderDetails $mail) {
             $html = $mail->render();
             $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
             $this->assertStringNotContainsString('<b>bold</b>', $html);
@@ -152,7 +152,7 @@ class OrderEmailTest extends TestCase
         $this->postJson('/api/order/store', $this->payload($item, $stock))->assertStatus(200);
         $this->postJson('/api/order/store', $this->payload($item, $stock))->assertStatus(200);   // same email, a second order
 
-        Mail::assertSent(OrderDetails::class, 2);
+        Mail::assertQueued(OrderDetails::class, 2);
         // the login details go out only once: the account already existed the second time (that mail is queued, so it is counted as queued)
         $this->assertSame(1, Mail::sent(CustomerCredentials::class)->count() + Mail::queued(CustomerCredentials::class)->count());
     }
@@ -168,7 +168,7 @@ class OrderEmailTest extends TestCase
         $this->postJson('/api/order/store', $payload)->assertStatus(200);
         $this->postJson('/api/order/store', $payload)->assertJsonFragment(['message' => 'order_made_already']);
 
-        Mail::assertSent(OrderDetails::class, 1);
+        Mail::assertQueued(OrderDetails::class, 1);
         $this->assertSame(1, Order::where('order_uniq_id', $payload['order_uniq_id'])->count());
     }
 
@@ -178,7 +178,7 @@ class OrderEmailTest extends TestCase
         [$response] = $this->placeBankOrder([], 1);   // one in stock, two ordered
 
         $response->assertJsonFragment(['message' => 'check_cart']);
-        Mail::assertNotSent(OrderDetails::class);
+        Mail::assertNotQueued(OrderDetails::class);
         $this->assertSame(0, Order::count());
     }
 
@@ -205,7 +205,7 @@ class OrderEmailTest extends TestCase
         $order->customer->save();
 
         $this->assertFalse(app(\App\Services\Orders\OrderEmails::class)->send($order->id));
-        Mail::assertSent(OrderDetails::class, 1);   // still only the original one
+        Mail::assertQueued(OrderDetails::class, 1);   // still only the original one
     }
 
     // ------------------------------------------------------------------ card payments (Paystack)
@@ -231,12 +231,12 @@ class OrderEmailTest extends TestCase
     {
         Mail::fake();
         [$order] = $this->initializePaystackOrder();
-        Mail::assertNotSent(OrderDetails::class);   // an unpaid card order is not "placed" yet
+        Mail::assertNotQueued(OrderDetails::class);   // an unpaid card order is not "placed" yet
 
         $this->paystackConfirms($order);
         $this->get('/api/order/paystack/callback?reference=' . $order->payment_reference)->assertRedirect();
-        Mail::assertSent(OrderDetails::class, 1);
-        Mail::assertSent(OrderDetails::class, function (OrderDetails $mail) {
+        Mail::assertQueued(OrderDetails::class, 1);
+        Mail::assertQueued(OrderDetails::class, function (OrderDetails $mail) {
             $html = $mail->render();
             $this->assertStringContainsString('Payment confirmed', $html);
             $this->assertStringNotContainsString('Awaiting payment confirmation', $html);
@@ -248,7 +248,7 @@ class OrderEmailTest extends TestCase
         // the browser callback and the webhook can both fire for one payment: still one email
         $this->get('/api/order/paystack/callback?reference=' . $order->payment_reference);
         $this->assertSame('paid', $order->fresh()->payment_status);
-        Mail::assertSent(OrderDetails::class, 1);
+        Mail::assertQueued(OrderDetails::class, 1);
     }
 
     public function testNoEmailWhenPaystackDoesNotConfirmThePayment()
@@ -260,6 +260,6 @@ class OrderEmailTest extends TestCase
         $this->get('/api/order/paystack/callback?reference=' . $order->payment_reference);
 
         $this->assertSame('pending', $order->fresh()->payment_status);
-        Mail::assertNotSent(OrderDetails::class);
+        Mail::assertNotQueued(OrderDetails::class);
     }
 }

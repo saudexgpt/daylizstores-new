@@ -2,17 +2,26 @@
 
 namespace App\Mail;
 
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * The customer's order confirmation: order number, what they ordered, totals, delivery details and
- * where things stand with payment. Sent straight away (not queued) from OrderEmails, which runs
- * after the checkout response, so it does not depend on a queue worker being up.
+ * The customer's order confirmation: order number, what they ordered, totals, delivery details and where things
+ * stand with payment.
+ *
+ * QUEUED: checkout only inserts a job; the queue worker talks to the mail server, and retries with back-off if it
+ * is down — so a slow or unreachable mail server can never delay an order, duplicate it, or lose the email.
+ * (The job carries only model ids, not the order's contents; it is rebuilt from the database when it runs.)
  */
-class OrderDetails extends Mailable
+class OrderDetails extends Mailable implements ShouldQueue
 {
-    use SerializesModels;
+    use Queueable, SerializesModels;
+
+    public $tries = 5;
+    public $backoff = [30, 120, 600, 1800];   // seconds between attempts
+    public $timeout = 60;
 
     public $user; // public so the view can read them
     public $order;
@@ -23,6 +32,7 @@ class OrderDetails extends Mailable
         $this->user = $user;
         $this->order = $order;
         $this->order_items = $order_items;
+        $this->afterCommit();   // only queue once the surrounding database transaction has committed
     }
 
     public function build()

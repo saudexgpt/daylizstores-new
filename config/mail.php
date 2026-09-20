@@ -19,6 +19,12 @@ return [
     'driver' => env('MAIL_DRIVER', 'smtp'),
 
     /*
+    | Give up on the SMTP connection after this many seconds instead of hanging (a blocked port never answers).
+    | The queue worker then retries the email later.
+    */
+    'timeout' => env('MAIL_TIMEOUT', 15),
+
+    /*
     |--------------------------------------------------------------------------
     | SMTP Host Address
     |--------------------------------------------------------------------------
@@ -56,8 +62,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@daylizstores.com'),
+        'name' => env('MAIL_FROM_NAME', 'Dayliz Stores'),
     ],
 
     /*

@@ -20,11 +20,13 @@ use App\Models\Stock\ItemSizePrice;
 use App\Models\Stock\ItemStock;
 use App\Services\PaystackService;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Intervention\Image\Facades\Image;
@@ -78,6 +80,10 @@ class OrdersController extends Controller
         return $this->show($order);
     }
 
+    /**
+     * @return array [User, ?string]  the customer, and their generated password when the account was JUST created
+     *                                (so the login email can be sent once the order has committed)
+     */
     private function registerCustomer($data)
     {
         $user = User::where('email', $data->email)->first();
@@ -93,19 +99,15 @@ class OrdersController extends Controller
             $user->nearest_bustop = $data->nearest_bustop;
             $user->save();
 
-            // send login credentials email to the newly registered guest-checkout customer
-            try {
-                Mail::to($user)->send(new CustomerCredentials($user, $password));
-            } catch (\Throwable $th) {
-                //throw $th;
-            }
-            return $user;
+            // NO email here: this runs inside the order transaction, and a slow mail server would hold the
+            // stock rows locked (see emailNewCustomerCredentials, called after the order is committed)
+            return [$user, $password];
         }
         // An existing account is left exactly as it is: this endpoint is
         // open to guests, so whoever types an email must not be able to
         // rewrite that account's saved address. The order itself carries
         // the delivery address it was placed with.
-        return $user;
+        return [$user, null];
     }
     /**
      * Store a newly created resource in storage.
@@ -227,6 +229,7 @@ class OrdersController extends Controller
         });
         if ($result['status'] === 'success') {
             // a bank-transfer order is "placed" now: the customer gets their order number and details by email
+            $this->emailNewCustomerCredentials($result);
             $this->emailOrderDetails($result['order']);
             return response()->json(['order_details' => $result['order'], 'message' => 'success'], 200);
         }
@@ -234,9 +237,9 @@ class OrdersController extends Controller
     }
 
     /**
-     * Emails the customer their order details AFTER the response has gone out, so checkout is never held up
-     * by (or fails because of) the mail server, and no queue worker is needed. The order is already
-     * committed by the time this runs. Never throws — see OrderEmails.
+     * Hands the customer's order details to the mail QUEUE — after the response has gone out and the order has
+     * committed, so checkout can never be held up by, or fail because of, the mail server. The queue worker
+     * does the actual sending, with retries. The hook is only a fast queue insert; it never throws (OrderEmails).
      */
     private function emailOrderDetails($order)
     {
@@ -246,6 +249,31 @@ class OrdersController extends Controller
             if (!$done) {
                 $done = true;
                 app(OrderEmails::class)->send($orderId);
+            }
+        });
+    }
+
+    /** the login details for a guest-checkout customer whose account was just created — queued, like every email */
+    private function emailNewCustomerCredentials(array $result)
+    {
+        $password = $result['new_customer_password'] ?? null;
+        if (!$password) {
+            return;   // an existing account: nothing to send
+        }
+        $userId = (int) $result['order']->user_id;
+        $done = false;
+        app()->terminating(function () use ($userId, $password, &$done) {
+            if ($done) {
+                return;
+            }
+            $done = true;
+            try {
+                $user = User::find($userId);
+                if ($user) {
+                    Mail::to($user)->send(new CustomerCredentials($user, $password));
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Login details email for customer #{$userId} could not be queued: " . $e->getMessage());
             }
         });
     }
@@ -283,10 +311,20 @@ class OrdersController extends Controller
                 if ($limited_stock) {
                     return ['status' => 'check_cart', 'details' => $details];
                 }
-                $user = $this->registerCustomer($request);
+                [$user, $newCustomerPassword] = $this->registerCustomer($request);
                 $order = $this->finalizeOrder($request, $cart, $user, $paymentDetails());
-                return ['status' => 'success', 'order' => $order];
+                return ['status' => 'success', 'order' => $order, 'new_customer_password' => $newCustomerPassword];
             });
+        } catch (UniqueConstraintViolationException $e) {
+            // The database refuses a second order with the same checkout id (orders_order_uniq_id_unique). It
+            // means another request for THIS checkout attempt committed first — a double click, or a retry after
+            // a timeout. This transaction has rolled back (nothing reserved, no stray customer), so hand back
+            // the order that already exists.
+            $existing = Order::where('order_uniq_id', $request->order_uniq_id)->first();
+            if ($existing) {
+                return ['status' => 'already', 'order' => $existing];
+            }
+            throw $e;   // some other unique rule (order number, payment reference): a real error
         } finally {
             if ($lock) {
                 $lock->release();
@@ -380,6 +418,7 @@ class OrdersController extends Controller
         if ($result['status'] !== 'success') {
             return $this->orderNotPlacedResponse($result);
         }
+        $this->emailNewCustomerCredentials($result);
 
         $order = $result['order'];
         $order->payment_reference = $order->order_number;

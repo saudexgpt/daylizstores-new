@@ -24,7 +24,7 @@ class PaystackService
      */
     public function initializeTransaction($email, $amountInKobo, $reference, $callbackUrl)
     {
-        $response = Http::withToken($this->secretKey())
+        $response = Http::withToken($this->secretKey())->connectTimeout(5)->timeout(15)
             ->post($this->baseUrl() . '/transaction/initialize', [
                 'email' => $email,
                 'amount' => $amountInKobo,
@@ -42,7 +42,7 @@ class PaystackService
      */
     public function verifyTransaction($reference)
     {
-        $response = Http::withToken($this->secretKey())
+        $response = Http::withToken($this->secretKey())->connectTimeout(5)->timeout(15)
             ->get($this->baseUrl() . '/transaction/verify/' . rawurlencode($reference));
         return $response->json();
     }

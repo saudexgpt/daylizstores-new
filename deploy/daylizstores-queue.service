@@ -1,0 +1,21 @@
+# systemd unit for the queue worker (sends every email, with retries).
+# Install:   sudo cp deploy/daylizstores-queue.service /etc/systemd/system/
+#            sudo systemctl daemon-reload && sudo systemctl enable --now daylizstores-queue
+# Status:    systemctl status daylizstores-queue        Log: storage/logs/queue-worker.log
+# After each deploy (new code): sudo systemctl restart daylizstores-queue   (or: php artisan queue:restart)
+[Unit]
+Description=Dayliz Stores queue worker
+After=network.target mysql.service
+
+[Service]
+User=deploy
+Group=www-data
+WorkingDirectory=/var/www/daylizstores/current
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=5 --max-time=3600 --timeout=90
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/daylizstores/shared/storage/logs/queue-worker.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

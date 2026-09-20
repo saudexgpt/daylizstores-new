@@ -158,7 +158,7 @@
                   <el-checkbox v-model="termsAgreed" />
                   <span>I have read and agree to the website <a class="checkout__terms-link" @click="showTermsAndConditions = true">Terms and Conditions</a></span>
                 </label>
-                <BaseButton variant="accent" class="checkout__submit-btn" :disabled="hasStockIssues" @click="submitOrder">Submit Order</BaseButton>
+                <BaseButton variant="accent" class="checkout__submit-btn" :disabled="hasStockIssues || loading" :loading="loading" @click="submitOrder">Submit Order</BaseButton>
               </div>
             </div>
 
@@ -168,7 +168,7 @@
                 <el-checkbox v-model="termsAgreed" />
                 <span>I have read and agree to the website <a class="checkout__terms-link" @click="showTermsAndConditions = true">Terms and Conditions</a></span>
               </label>
-              <BaseButton variant="accent" class="checkout__submit-btn" :disabled="hasStockIssues" :loading="paystackLoading" @click="payWithPaystack">
+              <BaseButton variant="accent" class="checkout__submit-btn" :disabled="hasStockIssues || paystackLoading" :loading="paystackLoading" @click="payWithPaystack">
                 Pay &#8358;{{ formatNumber(pendingOrder.amount, 2) }} with Paystack
               </BaseButton>
             </div>
@@ -387,6 +387,9 @@ export default {
     },
     submitOrder() {
       const app = this;
+      if (app.loading) {
+        return false; // already sending: a second click must not send it again
+      }
       if (!app.validateCheckout()) {
         return false;
       }
@@ -415,14 +418,22 @@ export default {
       new Resource('order/store').store(formData).then(response => {
         app.loading = false;
         app.handleOrderResponse(response);
-      }).catch(() => {
+      }).catch(error => {
         // HTTP errors (validation, rate limit, server) are already shown as
         // a message by the shared axios interceptor.
         app.loading = false;
+        // A timeout does not mean the order failed — it may have been placed. The same checkout id is sent again, and
+        // the server answers with the existing order instead of creating another, so pressing Submit again is safe.
+        if (error && (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT')) {
+          app.$alert('This is taking longer than usual. Your order may already have been received. Please press Submit Order once more — we will not create a second order.', 'Still working');
+        }
       });
     },
     payWithPaystack() {
       const app = this;
+      if (app.paystackLoading) {
+        return false;
+      }
       if (!app.validateCheckout()) {
         return false;
       }
