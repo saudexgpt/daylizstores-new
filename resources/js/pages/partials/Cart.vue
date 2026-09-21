@@ -20,7 +20,20 @@
               </td>
               <td>
                 <strong>{{ item.name }}</strong>
-                <p><label>{{ item.quantity }} pieces</label></p>
+                <div class="cart-row__qty">
+                  <el-input-number
+                    :model-value="item.quantity"
+                    :min="1"
+                    :max="stepperMax(item)"
+                    :disabled="isUnavailable(item)"
+                    :step-strictly="true"
+                    :precision="0"
+                    size="small"
+                    :aria-label="'Quantity of ' + item.name"
+                    @change="value => changeQuantity(item, value)"
+                  />
+                  <small v-if="availabilityNote(item)" class="cart-row__avail">{{ availabilityNote(item) }}</small>
+                </div>
                 <span v-if="item.standardAmount !== item.rate">
                   <span><s>{{ '₦' + formatNumber(item.standardAmount, 2) }}</s></span>
                   <span><label style="color: brown">{{ '₦' + formatNumber(item.rate, 2) }}</label></span>
@@ -60,6 +73,7 @@
 <script>
 import { Delete } from '@element-plus/icons-vue';
 import { formatNumber, onImageError, roundMoney } from '@/utils/index';
+import { knownAvailability, maxQuantity } from '@/utils/cartQuantity';
 import { useOrderStore } from '@/store';
 // import { addClass, removeClass } from '@/utils';
 
@@ -101,6 +115,21 @@ export default {
     hasStockIssues() {
       return Object.keys(this.stockIssues).length > 0;
     },
+    stockLevels() {
+      return this.orderStore.stockLevels;
+    },
+    // a line the server hasn't reported on yet (the cart finished loading after this opened, or a check failed)
+    hasUnknownLevels() {
+      return this.cart.some(line => this.available(line) === null);
+    },
+  },
+  watch: {
+    // ask once when that becomes true — it only fires on a change, so a check that keeps failing cannot loop
+    hasUnknownLevels(unknown) {
+      if (unknown) {
+        this.orderStore.scheduleValidation();
+      }
+    },
   },
   created() {
     this.orderStore.validateCart();
@@ -115,6 +144,33 @@ export default {
     //   });
     //   return total_stock_balance;
     // },
+    // How many of this line can be bought right now, or null until the server has said.
+    available(item) {
+      return knownAvailability(this.stockLevels[item.stock_id]);
+    },
+    isUnavailable(item) {
+      return this.available(item) === 0;
+    },
+    // The stepper's ceiling. A line already above what is left (flagged as short) shows its real quantity and
+    // can only be lowered, never raised.
+    stepperMax(item) {
+      return Math.max(maxQuantity(this.available(item), item.quantity), parseInt(item.quantity) || 1);
+    },
+    availabilityNote(item) {
+      const left = this.available(item);
+      if (left === null || left < 1 || parseInt(item.quantity) < left) {
+        return '';
+      }
+
+      return left === 1 ? 'Only 1 available' : `All ${left} available`;
+    },
+    changeQuantity(item, value) {
+      const requested = parseInt(value);
+      const applied = this.orderStore.setLineQuantity(item.stock_id, requested);
+      if (applied !== null && requested > applied) {
+        this.$message.warning(`Only ${applied} available for ${item.name}.`);
+      }
+    },
     removeItem(index) {
       const app = this;
       const unsyc_data = app.cart;
@@ -150,6 +206,19 @@ export default {
 <style lang="scss" scoped>
 .cart-row--flagged {
   background: #fef0f0;
+}
+
+.cart-row__qty {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.cart-row__avail {
+  color: #b45309;
+  font-weight: 600;
 }
 
 .cart-row__flag {

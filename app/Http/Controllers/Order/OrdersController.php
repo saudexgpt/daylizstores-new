@@ -140,7 +140,8 @@ class OrdersController extends Controller
      * check for the last units.
      *
      * @param array $cart validated cart lines (stock_id, quantity, name)
-     * @return array [bool $limited_stock, array $details]
+     * @return array [bool $limited_stock, array $details, array $levels]  $levels is what is on sale right now for
+     *               every stock row in the cart (stock_id => units), so a cart can cap its quantity controls
      */
     private function checkStockBeforeOrdering(array $cart, $lock = false)
     {
@@ -153,6 +154,7 @@ class OrdersController extends Controller
         $limited_stock = false;
         $details = [];
         $remaining = [];
+        $levels = [];
         foreach ($cart as $line) {
             $stockId = (int) $line['stock_id'];
             if (!isset($remaining[$stockId])) {
@@ -161,6 +163,7 @@ class OrdersController extends Controller
                 $remaining[$stockId] = $sellable
                     ? max(0, $stock->quantity_stocked - $stock->reserved - $stock->sold)
                     : 0;
+                $levels[$stockId] = $remaining[$stockId];
             }
             $wanted = (int) $line['quantity'];
             if ($wanted > $remaining[$stockId]) {
@@ -176,7 +179,7 @@ class OrdersController extends Controller
                 $remaining[$stockId] -= $wanted;
             }
         }
-        return array($limited_stock, $details);
+        return array($limited_stock, $details, $levels);
     }
     /**
      * Stores the (already validated jpg/png) payment evidence. Receipts live
@@ -212,8 +215,9 @@ class OrdersController extends Controller
      */
     public function validateCart(ValidateCartRequest $request)
     {
-        list($limited_stock, $details) = $this->checkStockBeforeOrdering($request->validated()['cart_items']);
-        return response()->json(compact('limited_stock', 'details'), 200);
+        list($limited_stock, $details, $levels) = $this->checkStockBeforeOrdering($request->validated()['cart_items']);
+        // stock_levels: how many of each cart line can be bought right now — the cart's quantity controls stop there
+        return response()->json(['limited_stock' => $limited_stock, 'details' => $details, 'stock_levels' => (object) $levels], 200);
     }
     public function store(StoreOrderRequest $request)
     {

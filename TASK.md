@@ -318,6 +318,16 @@ Goal: know what every product cost, so profit is real instead of "revenue minus 
 **Risks to manage**: the order and stock-movement code is the most delicate part of the system (every change is covered by tests and a checkout regression run) · going live must happen at a period boundary, right after the count · someone must own entering costs on every delivery, or layers go stale · imports must be checked before the first month is reported.
 
 
+## Storefront tweaks — colour names, pickup note, cart quantity controls
+
+- [x] **Colour names** on the product page: each swatch now has its name beside it ("Dark Green", "Black / White") — helps where colours look alike or a two-colour name has no valid swatch. A product whose only stock has no colour no longer shows an empty picker. (`utils/colorName.js`)
+- [x] **Pickup note** now reads "NO PICKUPS ON TUESDAYS & THURSDAYS". The note is the `pickup_warning` row of `settings` (no admin screen), so a data migration changes it: **runs on deploy with `php artisan migrate --force`**; touches only that exact phrase (a note the owner has reworded is left alone), safe to re-run.
+- [x] **Quantity controls in the cart** (drawer): a stepper on every line — +/−, or type a number. Totals, discount tiers (pooled per item + size) and the saved cart update at once.
+  - Stock is still enforced, in three layers: (1) `order/validate-cart` now also returns `stock_levels` (what can be bought per line: stocked − reserved − sold) and the stepper stops there; until the server has answered, a line can be lowered but not raised; (2) one pure clamp (`utils/cartQuantity.js`, unit-tested) is the only place quantities are decided — whole numbers, at least 1, at most what's available; (3) the order itself is still re-checked under a row lock when placed, so a stale or tampered browser cannot oversell.
+  - Stepping quickly costs one stock check, not one per click (600 ms debounce; a slow answer to an earlier check can never overwrite a newer one) — the API is rate-limited to 60/min.
+  - A line already above what is left (someone else bought some) is flagged as before, cannot be raised, and is cleared as soon as it is lowered to what remains.
+- [x] Verification: 10 new PHP tests (`CartStockLevelsTest`: levels per line/size/disabled/missing, follow other customers' reservations, oversell refused with nothing reserved, the last units allowed, crafted quantities and duplicate lines rejected, the note migration) + 15 JS tests. Suite: 264 PHP + 44 JS tests pass, production build clean. Browser-checked: colour names, 20 clicks on + stop at the 13 in stock (one stock check), typing 999 → 13, 0 → 1, a short line flagged then cleared, checkout note text, no console errors.
+
 ## Progress Tracking
 
 | Phase | Status |

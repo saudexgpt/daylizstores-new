@@ -51,19 +51,22 @@
             <span v-if="detailPricing.percentOff > 0" class="item-details__price-off">{{ detailPricing.percentOff }}% OFF</span>
           </p>
 
-          <div v-if="available_colors.length > 0" class="item-details__colors">
+          <div v-if="showColors" class="item-details__colors">
             <span class="item-details__label">Colors:</span>
             <button
               v-for="(color, index) in available_colors"
               :key="index"
               type="button"
-              class="item-details__color-swatch"
-              :class="{ 'item-details__color-swatch--selected': selectedColor === color }"
-              :style="{ background: color }"
-              :aria-label="`Select color ${color}`"
+              class="item-details__color-option"
+              :class="{ 'item-details__color-option--selected': selectedColor === color }"
+              :aria-label="`Select color ${colorLabel(color)}`"
+              :aria-pressed="selectedColor === color"
               @click="setItemDetailsForCart(color)"
             >
-              <el-icon v-if="selectedColor === color"><IconCheck /></el-icon>
+              <span class="item-details__color-swatch" :style="{ background: color }">
+                <el-icon v-if="selectedColor === color"><IconCheck /></el-icon>
+              </span>
+              <span class="item-details__color-name">{{ colorLabel(color) }}</span>
             </button>
           </div>
 
@@ -196,6 +199,7 @@ import RelatedProducts from './partials/RelatedProducts.vue';
 import Error404 from '@/views/error-page/404';
 import Resource from '@/api/resource';
 import { useOrderStore } from '@/store';
+import { colorLabel, hasNamedColors } from '@/utils/colorName';
 export default {
   name: 'ProductDetails',
   components: {
@@ -272,6 +276,10 @@ export default {
       const percentOff = final < original ? Math.round((1 - final / original) * 100) : 0;
       return { original, final, percentOff };
     },
+    // the colour picker is only worth showing when the product has a real colour
+    showColors() {
+      return hasNamedColors(this.available_colors);
+    },
   },
   created() {
     this.fetchItem();
@@ -280,6 +288,7 @@ export default {
   methods: {
     formatNumber,
     onImageError,
+    colorLabel,
     stockBalance(stock) {
       return parseInt(stock.quantity_stocked - stock.reserved - stock.sold, 10);
     },
@@ -644,24 +653,49 @@ export default {
   &__colors {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 18px;
   }
 
-  &__color-swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid var(--color-border);
+  // A swatch with its name beside it, so colours that look alike (or that have no swatch at all, like
+  // "Black / White") can still be told apart.
+  &__color-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px 4px 4px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-text);
     cursor: pointer;
+
+    &:hover {
+      border-color: var(--color-navy);
+    }
+
+    &--selected {
+      border-color: var(--color-navy);
+      box-shadow: 0 0 0 1px var(--color-navy);
+      font-weight: 600;
+      color: var(--color-navy);
+    }
+  }
+
+  &__color-swatch {
+    width: 26px;
+    height: 26px;
+    flex: none;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.25);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-
-    &--selected {
-      border-color: var(--color-navy);
-    }
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
   }
 
   &__sizes {
