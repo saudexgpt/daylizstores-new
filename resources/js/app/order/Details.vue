@@ -3,6 +3,7 @@
     <!-- summary -->
     <section class="od-card od-summary">
       <div class="od-summary__main">
+        <img src="/images/logo.png" alt="DayLiz Stores" class="od-logo">
         <p class="od-eyebrow">Order</p>
         <h2 class="od-number">{{ order.order_number }}</h2>
         <p class="od-muted">Placed {{ moment(order.created_at).format('dddd, D MMMM YYYY [at] h:mm a') }}</p>
@@ -53,7 +54,7 @@
         </dl>
       </section>
 
-      <section class="od-card od-receipt">
+      <section class="od-card od-receipt no-print">
         <h3 class="od-card__title">Payment receipt</h3>
         <el-image
           v-if="order.receipt_image"
@@ -386,6 +387,13 @@ export default {
   }
 }
 
+.od-logo {
+  display: block;
+  height: 42px;
+  width: auto;
+  margin-bottom: 10px;
+}
+
 .od-eyebrow {
   margin: 0 0 2px;
   font-size: 12px;
@@ -554,5 +562,83 @@ export default {
 @media (max-width: 991px) {
   .od-grid { grid-template-columns: minmax(0, 1fr); }
   .od-summary__total { align-items: flex-start; text-align: left; }
+}
+
+// A printed order should read as a compact, single-page slip for a normal-sized order — screen spacing,
+// font sizes and the (screen-only, click-to-zoom) receipt photo all get dropped or shrunk for that. The
+// items table is the one part allowed to spill onto further A4 pages, for an order with many lines: its
+// header repeats on each page and nothing — a row, the grand total, the amount in words — is ever split
+// across a page break.
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  .order-details {
+    font-size: 11px;
+    color: #000;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .od-card {
+    margin-bottom: 10px;
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+
+    &__title {
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+  }
+
+  .od-logo { height: 34px; margin-bottom: 6px; }
+  .od-eyebrow { font-size: 10px; }
+  .od-number { font-size: 20px; }
+  .od-muted { font-size: 11px; }
+
+  .od-summary {
+    gap: 8px 24px;
+
+    &__total {
+      span { font-size: 10px; }
+      strong { font-size: 18px; }
+    }
+  }
+
+  .od-alert { margin-bottom: 10px; }
+
+  .od-grid {
+    // the receipt photo (od-receipt) is dropped on print, so what's left reads better as two columns
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+
+    .od-card { margin-bottom: 10px; }
+  }
+
+  .od-list > div {
+    padding: 4px 0;
+  }
+
+  .od-table {
+    th, td { padding: 5px 8px; font-size: 10.5px; }
+
+    thead { display: table-header-group; } // repeats on every page the table spills onto
+    tfoot { display: table-row-group; } // prints once, after the last item — not repeated per page
+
+    tbody tr,
+    tfoot tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
+
+  .od-table__grand td { padding-top: 8px; }
 }
 </style>
