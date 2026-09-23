@@ -45,4 +45,21 @@ export default defineConfig({
     // port than Vite's own dev server; this keeps HMR working across origins.
     cors: true,
   },
+  build: {
+    // xlsx (SheetJS, for Excel import/export) is a genuinely large third-party library, and it's already
+    // only ever loaded on demand (dynamic `import('xlsx')`) by the handful of pages that need it — never
+    // part of what a visitor downloads up front. 700 quiets that one known, already-lazy case without
+    // hiding a future regression in the chunks everyone actually downloads on every visit.
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split out so it's cached separately from application code — it changes far less often than
+          // app code does, so a deploy that only touches app code doesn't force it to be re-downloaded.
+          'vendor-element-plus': ['element-plus', '@element-plus/icons-vue'],
+          'vendor-moment': ['moment'],
+        },
+      },
+    },
+  },
 });

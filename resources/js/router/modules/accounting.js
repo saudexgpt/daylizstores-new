@@ -1,4 +1,3 @@
-import Layout from '@/layout';
 
 /**
  * Accounting: is the business making a profit? Reading the books needs "view accounting";
@@ -6,7 +5,7 @@ import Layout from '@/layout';
  */
 const accountingRoutes = {
   path: '/accounting',
-  component: Layout,
+  component: () => import('@/layout'),
   redirect: '/accounting/overview',
   alwaysShow: true,
   meta: {

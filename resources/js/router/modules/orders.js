@@ -1,8 +1,7 @@
-import Layout from '@/layout';
 
 const permissionRoutes = {
   path: '/orders',
-  component: Layout,
+  component: () => import('@/layout'),
   redirect: '/orders/view-orders',
   alwaysShow: true, // will always show the root menu
   meta: {

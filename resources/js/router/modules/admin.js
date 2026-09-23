@@ -1,9 +1,8 @@
 /** When your routing table is too long, you can split it into small modules**/
-import Layout from '@/layout';
 
 const adminRoutes = {
   path: '/administrator',
-  component: Layout,
+  component: () => import('@/layout'),
   redirect: '/administrator/users',
   name: 'Administrator',
   alwaysShow: true,

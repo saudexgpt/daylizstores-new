@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-/* Layout */
-import Layout from '@/layout';
-import PublicLayout from '@/layout/Public';
+/* Layout — lazy: an admin visitor never needs the storefront shell (and its cart/header/footer) and a
+   storefront customer never needs the admin shell (and its Pusher/Echo real-time wiring, sidebar, etc.);
+   eagerly importing both meant every visitor downloaded both, on top of the current page. */
+const Layout = () => import('@/layout');
+const PublicLayout = () => import('@/layout/Public');
 
 import adminRoutes from './modules/admin';
 import errorRoutes from './modules/error';
